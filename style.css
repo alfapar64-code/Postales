@@ -22,10 +22,7 @@ body {
   align-items: center;
 }
 
-h1 {
-  font-size: 1.3rem;
-  text-align: center;
-}
+h1 { font-size: 1.3rem; text-align: center; }
 
 .controls {
   display: flex;
@@ -48,11 +45,11 @@ h1 {
 .btn.primary { background: #007bff; }
 .btn.success { background: #28a745; width: 100%; font-size: 1.1rem; }
 
-input[type="file"] {
-  display: none;
-}
+input[type="file"] { display: none; }
 
+/* El contenedor ahora sobrepone el video y el canvas */
 .preview-container {
+  position: relative;
   width: 100%;
   aspect-ratio: 9 / 16;
   border-radius: 12px;
@@ -61,8 +58,23 @@ input[type="file"] {
   background: #222;
 }
 
-canvas {
+#liveVideo {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  display: block;
+  object-fit: cover;
+  z-index: 1; /* Detrás del canvas */
+  transform: scaleX(-1); /* Efecto espejo por defecto para selfies */
+}
+
+#postalCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* Letras por encima del video */
+  pointer-events: none;
 }
