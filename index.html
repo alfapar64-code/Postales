@@ -4,22 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Creador de Postales</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121212">
+  <link rel="apple-touch-icon" href="icono_postal.webp">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>Generador de Postales</h1>
+    <h1 id="appTitle">Generador de Postales</h1>
     
-    <div class="controls">
+    <div class="controls" id="mainControls">
       <label class="btn">
-        📷 Tomar Foto / Galería
+        🖼️ Galería
         <input type="file" id="imageInput" accept="image/*">
       </label>
-      <button id="generateBtn" class="btn primary">Generar Postal</button>
+      <button id="startCameraBtn" class="btn primary">📸 Cámara en vivo</button>
     </div>
 
-    <!-- Vista previa del Canvas -->
+    <div class="controls" id="cameraControls" style="display:none;">
+      <button id="switchCameraBtn" class="btn">🔄 Girar Cámara</button>
+      <button id="captureBtn" class="btn primary">✅ Capturar</button>
+    </div>
+
     <div class="preview-container">
+      <video id="liveVideo" autoplay playsinline style="display:none;"></video>
       <canvas id="postalCanvas" width="1080" height="1920"></canvas>
     </div>
 
