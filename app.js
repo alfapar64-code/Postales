@@ -118,9 +118,9 @@ function renderPostal() {
   ctx.fillText("🇦🇷 Les saludo desde la hermosa 🇦🇷", 540, 200);
   ctx.fillText("ciudad de Buenos Aires", 540, 255);
 
-  // Fecha
+  // Fecha (Ajustado el tamaño a 42px)
   ctx.fillStyle = "#E0E0E0";
-  ctx.font = "400 36px sans-serif";
+  ctx.font = "500 42px sans-serif"; 
   ctx.fillText(getFormattedDate(), 540, 330);
 
   // Clima
@@ -178,8 +178,8 @@ shareBtn.addEventListener('click', async () => {
       try {
         await navigator.share({
           files: [file],
-          title: 'Postal Diaria',
-          text: '¡Les envío mi saludo del día!'
+          title: 'Postal Diaria'
+          // El texto fue eliminado para que envíe solo la imagen
         });
       } catch (err) {
         console.log("Compartido cancelado");
