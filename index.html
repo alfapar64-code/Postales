@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creador de Postales</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Generador de Postales</h1>
+    
+    <div class="controls">
+      <label class="btn">
+        📷 Tomar Foto / Galería
+        <input type="file" id="imageInput" accept="image/*" capture="user">
+      </label>
+      <button id="generateBtn" class="btn primary">Generar Postal</button>
+    </div>
+
+    <!-- Vista previa del Canvas -->
+    <div class="preview-container">
+      <canvas id="postalCanvas" width="1080" height="1920"></canvas>
+    </div>
+
+    <button id="shareBtn" class="btn success" style="display:none;">📲 Compartir / Guardar</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
