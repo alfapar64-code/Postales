@@ -9,54 +9,63 @@ const captureBtn = document.getElementById('captureBtn');
 const shareBtn = document.getElementById('shareBtn');
 const mainControls = document.getElementById('mainControls');
 const cameraControls = document.getElementById('cameraControls');
+const quoteInput = document.getElementById('quoteInput');
+const newQuoteBtn = document.getElementById('newQuoteBtn');
 
 let loadedImage = null;
 let stream = null;
-let currentFacingMode = 'user'; // 'user' (selfie) o 'environment' (trasera)
+let currentFacingMode = 'user';
 let weatherData = { temp: '--', condition: 'despejado', emoji: '☀️', tempEmoji: '🌡️' };
 let dailyQuote = "¡Que tengas un día maravilloso lleno de alegrías!";
 
-// URL para descargar las frases desde tu Google Sheet en formato CSV
-// IMPORTANTE: Asegúrate de haber publicado tu hoja en la web (Archivo > Compartir > Publicar en la web)
+// URL del Google Sheet en CSV
 const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/10DY4i2eMxgOBo_QLtf32jSKH2BHqXHilW98GIbobw5E/export?format=csv";
 
-// Lista interna de respaldo por si falla la conexión al Sheet
 let quotes = [
-  "💡 Cada nuevo día es una página en blanco en el diario de tu vida. ¡Escribe una gran historia hoy!",
-  "💡 La actitud con la que comiences tu día determinará el éxito del mismo. ¡Mantén una mente positiva!",
-  "💡 Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día. ¡Sonríe!"
+  "💡 Cada nuevo día es una página en blanco en el diario de tu vida. ¡Escribe una gran historia hoy!"
 ];
 
-// Función para obtener las frases desde Google Sheets
+// Cargar frases de Google Sheets
 async function fetchQuotesFromSheet() {
   try {
     const response = await fetch(sheetCsvUrl);
     const data = await response.text();
-    
-    // Separamos el texto por saltos de línea, quitamos espacios en blanco extra y filtramos líneas vacías
     const parsedQuotes = data.split('\n').map(q => q.trim()).filter(q => q !== "");
     
     if (parsedQuotes.length > 0) {
-      // Agregamos el icono del bombillo a cada frase si no lo tiene
       quotes = parsedQuotes.map(q => {
-        // Quitamos las comillas dobles si el CSV las agrega al inicio y al final
         let cleanQuote = q;
         if (cleanQuote.startsWith('"') && cleanQuote.endsWith('"')) {
            cleanQuote = cleanQuote.slice(1, -1);
         }
-        return cleanQuote.startsWith("💡") ? cleanQuote : `💡 ${cleanQuote}`;
+        return cleanQuote.startsWith("💡") || cleanQuote.startsWith("🎈") ? cleanQuote : `💡 ${cleanQuote}`;
       });
     }
   } catch (error) {
-    console.log("Error al cargar las frases del Sheet, usando las de respaldo:", error);
+    console.log("Error al cargar las frases del Sheet", error);
   }
 }
 
-// Función para seleccionar una frase al azar de la lista cargada
+// Seleccionar frase al azar y ponerla en el cuadro de texto
 function getRandomQuote() {
-  const randomIndex = Math.floor(Math.random() * quotes.length);
-  dailyQuote = quotes[randomIndex];
+  if (quotes.length > 0) {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    dailyQuote = quotes[randomIndex];
+    quoteInput.value = dailyQuote;
+  }
 }
+
+// Escuchar cambios en el cuadro de texto (Para mensajes personalizados)
+quoteInput.addEventListener('input', (e) => {
+  dailyQuote = e.target.value;
+  renderPostal(video.style.display === 'block'); 
+});
+
+// Botón para cambiar frase
+newQuoteBtn.addEventListener('click', () => {
+  getRandomQuote();
+  renderPostal(video.style.display === 'block'); 
+});
 
 // Cargar imagen de Galería
 imageInput.addEventListener('change', (e) => {
@@ -75,12 +84,11 @@ imageInput.addEventListener('change', (e) => {
   }
 });
 
-// Iniciar Cámara en Vivo
+// Iniciar Cámara
 startCameraBtn.addEventListener('click', async () => {
   await openCamera(currentFacingMode);
 });
 
-// Cambiar cámara (Frontal/Trasera)
 switchCameraBtn.addEventListener('click', async () => {
   currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
   await openCamera(currentFacingMode);
@@ -92,8 +100,6 @@ async function openCamera(facingMode) {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
     video.srcObject = stream;
     video.style.display = 'block';
-    
-    // Si es cámara selfie, poner modo espejo
     video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
 
     mainControls.style.display = 'none';
@@ -101,14 +107,13 @@ async function openCamera(facingMode) {
     shareBtn.style.display = 'none';
     
     loadedImage = null; 
-    getRandomQuote(); // Actualiza la frase al abrir la cámara
-    renderPostal(true); // True indica fondo transparente para ver el video
+    renderPostal(true); 
   } catch (err) {
-    alert("Error al abrir la cámara. Revisa los permisos.");
+    alert("Error al abrir la cámara.");
   }
 }
 
-// Capturar Foto
+// Capturar
 captureBtn.addEventListener('click', () => {
   const scale = Math.max(1080 / video.videoWidth, 1920 / video.videoHeight);
   const x = (1080 - video.videoWidth * scale) / 2;
@@ -119,7 +124,6 @@ captureBtn.addEventListener('click', () => {
   tempCanvas.height = 1920;
   const tCtx = tempCanvas.getContext('2d');
   
-  // Aplicar efecto espejo a la foto final si es selfie
   if (currentFacingMode === 'user') {
     tCtx.translate(1080, 0);
     tCtx.scale(-1, 1);
@@ -143,7 +147,6 @@ function stopCamera() {
   mainControls.style.display = 'flex';
 }
 
-// Datos de tiempo y clima
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return "¡Muy Buenos días!";
@@ -169,9 +172,8 @@ async function fetchWeather() {
     if (code >= 1 && code <= 3) { condition = "nublado"; emoji = "☁️"; }
     else if (code >= 51) { condition = "lloviendo"; emoji = "🌧️"; }
     weatherData = { temp, condition, emoji, tempEmoji };
-  } catch (e) { console.log(e); }
+  } catch (e) {}
 }
-
 
 // Renderizado principal
 function renderPostal(isTransparent = false) {
@@ -187,11 +189,10 @@ function renderPostal(isTransparent = false) {
     ctx.fillRect(0, 0, 1080, 1920);
   }
 
-  // Tarjeta Superior Translucida
+  // A. Tarjeta Superior Translucida
   ctx.fillStyle = "rgba(40, 40, 40, 0.55)";
   roundRect(ctx, 40, 40, 1000, 430, 30, true);
 
-  // Textos Tarjeta Superior
   ctx.textAlign = "center";
   ctx.fillStyle = "#FFD700";
   ctx.font = "bold 62px sans-serif";
@@ -210,15 +211,56 @@ function renderPostal(isTransparent = false) {
   ctx.font = "bold 40px sans-serif";
   ctx.fillText(`${weatherData.tempEmoji} Temperatura ${weatherData.temp}°C (${weatherData.condition}${weatherData.emoji})`, 540, 410);
 
-  // Tarjeta Inferior Translucida
-  ctx.fillStyle = "rgba(40, 40, 40, 0.65)";
-  roundRect(ctx, 40, 1500, 1000, 360, 30, true);
+  // B. Tarjeta Inferior Translucida (Adaptable y editable)
+  // 1. Letra más grande (42px)
+  ctx.font = "bold 42px sans-serif";
+  const maxWidth = 920; // Ancho máximo del texto
+  const lineHeight = 54; // Espacio entre líneas
+  const padding = 45; // Margen interno de la caja negra
+  const marginBot = 60; // Separación del borde inferior de la imagen
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "bold 34px sans-serif";
-  ctx.textAlign = "left";
-  // Llamamos a la variable dailyQuote para imprimir la frase elegida al azar
-  wrapText(ctx, dailyQuote, 70, 1560, 940, 46);
+  // Función para calcular cuántas líneas ocupará el texto
+  function getLines(text, maxWidth) {
+    if(!text) return [];
+    const words = text.split(' ');
+    let lines = [];
+    let currentLine = words[0] || "";
+
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const width = ctx.measureText(currentLine + " " + word).width;
+      if (width < maxWidth) {
+        currentLine += " " + word;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  }
+
+  // Obtenemos las líneas del texto actual
+  const lines = getLines(dailyQuote, maxWidth);
+  
+  // 2. Calculamos la altura exacta de la caja
+  const boxHeight = (lines.length * lineHeight) + (padding * 2) - 10;
+  const boxY = 1920 - boxHeight - marginBot; // Posición Y dinámica
+
+  // Dibujamos la caja translúcida
+  if (dailyQuote.trim() !== "") {
+    ctx.fillStyle = "rgba(40, 40, 40, 0.65)";
+    roundRect(ctx, 40, boxY, 1000, boxHeight, 30, true);
+
+    // Dibujamos el texto línea por línea
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "left";
+    let textY = boxY + padding + 40; // Alineación inicial
+    for(let i=0; i<lines.length; i++) {
+      ctx.fillText(lines[i], 75, textY);
+      textY += lineHeight;
+    }
+  }
 
   if(loadedImage) shareBtn.style.display = 'block';
 }
@@ -232,21 +274,6 @@ function roundRect(ctx, x, y, width, height, radius, fill) {
   ctx.arcTo(x, y, x + width, y, radius);
   ctx.closePath();
   if (fill) ctx.fill();
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(' ');
-  let line = '';
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && n > 0) {
-      ctx.fillText(line, x, y);
-      line = words[n] + ' ';
-      y += lineHeight;
-    } else { line = testLine; }
-  }
-  ctx.fillText(line, x, y);
 }
 
 shareBtn.addEventListener('click', async () => {
@@ -265,7 +292,7 @@ shareBtn.addEventListener('click', async () => {
 
 window.onload = async () => {
   await fetchWeather();
-  await fetchQuotesFromSheet(); // Primero descargamos las frases de tu hoja
-  getRandomQuote(); // Luego seleccionamos una al azar
+  await fetchQuotesFromSheet();
+  getRandomQuote();
   renderPostal(false);
 };
