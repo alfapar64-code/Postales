@@ -7,7 +7,7 @@
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#121212">
-  <link rel="apple-touch-icon" href="icono_postal.webp">
+  <link rel="apple-touch-icon" href="icono_postal.png">
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -28,6 +28,11 @@
       <button id="captureBtn" class="btn primary">✅ Capturar</button>
     </div>
 
+    <div style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+      <textarea id="quoteInput" rows="3" placeholder="Cargando mensaje..." style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #333; color: white; font-size: 16px; resize: vertical; font-family: inherit;"></textarea>
+      <button id="newQuoteBtn" class="btn" style="background: #444; font-size: 14px; padding: 10px;">🎲 Cargar otra frase al azar</button>
+    </div>
+
     <div class="preview-container">
       <video id="liveVideo" autoplay playsinline style="display:none;"></video>
       <canvas id="postalCanvas" width="1080" height="1920"></canvas>
@@ -37,5 +42,12 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(function() {
+        console.log('Service Worker Registrado');
+      });
+    }
+  </script>
 </body>
 </html>
