@@ -14,7 +14,49 @@ let loadedImage = null;
 let stream = null;
 let currentFacingMode = 'user'; // 'user' (selfie) o 'environment' (trasera)
 let weatherData = { temp: '--', condition: 'despejado', emoji: '☀️', tempEmoji: '🌡️' };
-let historyFact = "Tal día como hoy: Un día especial para saludar a la familia y amigos.";
+let dailyQuote = "¡Que tengas un día maravilloso lleno de alegrías!";
+
+// URL para descargar las frases desde tu Google Sheet en formato CSV
+// IMPORTANTE: Asegúrate de haber publicado tu hoja en la web (Archivo > Compartir > Publicar en la web)
+const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/10DY4i2eMxgOBo_QLtf32jSKH2BHqXHilW98GIbobw5E/export?format=csv";
+
+// Lista interna de respaldo por si falla la conexión al Sheet
+let quotes = [
+  "💡 Cada nuevo día es una página en blanco en el diario de tu vida. ¡Escribe una gran historia hoy!",
+  "💡 La actitud con la que comiences tu día determinará el éxito del mismo. ¡Mantén una mente positiva!",
+  "💡 Un pequeño pensamiento positivo por la mañana puede cambiar todo tu día. ¡Sonríe!"
+];
+
+// Función para obtener las frases desde Google Sheets
+async function fetchQuotesFromSheet() {
+  try {
+    const response = await fetch(sheetCsvUrl);
+    const data = await response.text();
+    
+    // Separamos el texto por saltos de línea, quitamos espacios en blanco extra y filtramos líneas vacías
+    const parsedQuotes = data.split('\n').map(q => q.trim()).filter(q => q !== "");
+    
+    if (parsedQuotes.length > 0) {
+      // Agregamos el icono del bombillo a cada frase si no lo tiene
+      quotes = parsedQuotes.map(q => {
+        // Quitamos las comillas dobles si el CSV las agrega al inicio y al final
+        let cleanQuote = q;
+        if (cleanQuote.startsWith('"') && cleanQuote.endsWith('"')) {
+           cleanQuote = cleanQuote.slice(1, -1);
+        }
+        return cleanQuote.startsWith("💡") ? cleanQuote : `💡 ${cleanQuote}`;
+      });
+    }
+  } catch (error) {
+    console.log("Error al cargar las frases del Sheet, usando las de respaldo:", error);
+  }
+}
+
+// Función para seleccionar una frase al azar de la lista cargada
+function getRandomQuote() {
+  const randomIndex = Math.floor(Math.random() * quotes.length);
+  dailyQuote = quotes[randomIndex];
+}
 
 // Cargar imagen de Galería
 imageInput.addEventListener('change', (e) => {
@@ -59,6 +101,7 @@ async function openCamera(facingMode) {
     shareBtn.style.display = 'none';
     
     loadedImage = null; 
+    getRandomQuote(); // Actualiza la frase al abrir la cámara
     renderPostal(true); // True indica fondo transparente para ver el video
   } catch (err) {
     alert("Error al abrir la cámara. Revisa los permisos.");
@@ -129,19 +172,6 @@ async function fetchWeather() {
   } catch (e) { console.log(e); }
 }
 
-async function fetchHistory() {
-  try {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const res = await fetch(`https://es.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`);
-    const data = await res.json();
-    if (data.events && data.events.length > 0) {
-      const filtered = data.events.find(e => e.text.includes("Argentina") || e.text.includes("Venezuela")) || data.events[0];
-      historyFact = `💡 Tal día como hoy en ${filtered.year}: ${filtered.text}`;
-    }
-  } catch (e) { console.log(e); }
-}
 
 // Renderizado principal
 function renderPostal(isTransparent = false) {
@@ -187,7 +217,8 @@ function renderPostal(isTransparent = false) {
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "bold 34px sans-serif";
   ctx.textAlign = "left";
-  wrapText(ctx, historyFact, 70, 1560, 940, 46);
+  // Llamamos a la variable dailyQuote para imprimir la frase elegida al azar
+  wrapText(ctx, dailyQuote, 70, 1560, 940, 46);
 
   if(loadedImage) shareBtn.style.display = 'block';
 }
@@ -234,6 +265,7 @@ shareBtn.addEventListener('click', async () => {
 
 window.onload = async () => {
   await fetchWeather();
-  await fetchHistory();
+  await fetchQuotesFromSheet(); // Primero descargamos las frases de tu hoja
+  getRandomQuote(); // Luego seleccionamos una al azar
   renderPostal(false);
 };
