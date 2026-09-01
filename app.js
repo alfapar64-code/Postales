@@ -12,6 +12,11 @@ const cameraControls = document.getElementById('cameraControls');
 const quoteInput = document.getElementById('quoteInput');
 const newQuoteBtn = document.getElementById('newQuoteBtn');
 
+// Variables para el Zoom
+const zoomContainer = document.getElementById('zoomContainer');
+const zoomSlider = document.getElementById('zoomSlider');
+let videoTrack = null;
+
 let loadedImage = null;
 let stream = null;
 let currentFacingMode = 'user';
@@ -97,7 +102,11 @@ switchCameraBtn.addEventListener('click', async () => {
 async function openCamera(facingMode) {
   if (stream) stream.getTracks().forEach(track => track.stop());
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+    // Pedimos acceso a la cámara y soporte para zoom
+    stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: facingMode, zoom: true } 
+    });
+    
     video.srcObject = stream;
     video.style.display = 'block';
     video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
@@ -108,10 +117,42 @@ async function openCamera(facingMode) {
     
     loadedImage = null; 
     renderPostal(true); 
+
+    // --- NUEVO: Configurar Zoom ---
+    // Esperamos un momento para asegurarnos de que la cámara se inicializó por completo
+    setTimeout(() => {
+      [videoTrack] = stream.getVideoTracks();
+      const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+      
+      // Si la cámara del dispositivo reporta que tiene la capacidad de hacer zoom
+      if (capabilities.zoom) {
+        zoomSlider.min = capabilities.zoom.min;
+        zoomSlider.max = capabilities.zoom.max;
+        zoomSlider.step = capabilities.zoom.step;
+        zoomSlider.value = videoTrack.getSettings().zoom || capabilities.zoom.min;
+        zoomContainer.style.display = 'flex';
+      } else {
+        zoomContainer.style.display = 'none'; // Se oculta si el teléfono/navegador no lo soporta
+      }
+    }, 500);
+
   } catch (err) {
     alert("Error al abrir la cámara.");
   }
 }
+
+// --- NUEVO: Evento para mover el slider de Zoom ---
+zoomSlider.addEventListener('input', async (e) => {
+  if (videoTrack) {
+    try {
+      await videoTrack.applyConstraints({
+        advanced: [{ zoom: e.target.value }]
+      });
+    } catch (err) {
+      console.log("Error al aplicar zoom", err);
+    }
+  }
+});
 
 // Capturar
 captureBtn.addEventListener('click', () => {
@@ -144,6 +185,7 @@ function stopCamera() {
   if (stream) stream.getTracks().forEach(track => track.stop());
   video.style.display = 'none';
   cameraControls.style.display = 'none';
+  zoomContainer.style.display = 'none'; // Ocultamos el zoom
   mainControls.style.display = 'flex';
 }
 
@@ -212,14 +254,12 @@ function renderPostal(isTransparent = false) {
   ctx.fillText(`${weatherData.tempEmoji} Temperatura ${weatherData.temp}°C (${weatherData.condition}${weatherData.emoji})`, 540, 410);
 
   // B. Tarjeta Inferior Translucida (Adaptable y editable)
-  // 1. Letra más grande (42px)
   ctx.font = "bold 42px sans-serif";
-  const maxWidth = 920; // Ancho máximo del texto
-  const lineHeight = 54; // Espacio entre líneas
-  const padding = 45; // Margen interno de la caja negra
-  const marginBot = 60; // Separación del borde inferior de la imagen
+  const maxWidth = 920; 
+  const lineHeight = 54; 
+  const padding = 45; 
+  const marginBot = 60; 
 
-  // Función para calcular cuántas líneas ocupará el texto
   function getLines(text, maxWidth) {
     if(!text) return [];
     const words = text.split(' ');
@@ -240,22 +280,17 @@ function renderPostal(isTransparent = false) {
     return lines;
   }
 
-  // Obtenemos las líneas del texto actual
   const lines = getLines(dailyQuote, maxWidth);
-  
-  // 2. Calculamos la altura exacta de la caja
   const boxHeight = (lines.length * lineHeight) + (padding * 2) - 10;
-  const boxY = 1920 - boxHeight - marginBot; // Posición Y dinámica
+  const boxY = 1920 - boxHeight - marginBot; 
 
-  // Dibujamos la caja translúcida
   if (dailyQuote.trim() !== "") {
     ctx.fillStyle = "rgba(40, 40, 40, 0.65)";
     roundRect(ctx, 40, boxY, 1000, boxHeight, 30, true);
 
-    // Dibujamos el texto línea por línea
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "left";
-    let textY = boxY + padding + 40; // Alineación inicial
+    let textY = boxY + padding + 40; 
     for(let i=0; i<lines.length; i++) {
       ctx.fillText(lines[i], 75, textY);
       textY += lineHeight;
